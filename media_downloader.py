@@ -1,4 +1,5 @@
 """Downloads media from telegram."""
+import argparse
 import asyncio
 import logging
 import os
@@ -25,8 +26,13 @@ logging.basicConfig(
     handlers=[RichHandler()],
 )
 
-CONFIG_NAME = "config.yaml"
-DATA_FILE_NAME = "data.yaml"
+parser = argparse.ArgumentParser(description='Telegram Media Downloader')
+parser.add_argument('--config', type=str, default="config.yaml")
+parser.add_argument('--data', type=str, default="data.yaml")
+args = parser.parse_args()
+
+CONFIG_NAME = args.config
+DATA_FILE_NAME = args.data
 APPLICATION_NAME = "media_downloader"
 app = Application(CONFIG_NAME, DATA_FILE_NAME, APPLICATION_NAME)
 
@@ -95,7 +101,7 @@ def _validate_title(title: str):
     return new_title
 
 
-def _can_download(_type: str, file_formats: dict, file_format: Optional[str]) -> bool:
+def _can_download(_type: str, file_formats: dict, file_format: Optional[str], msg_file_name: Optional[str]) -> bool:
     """
     Check if the given file format can be downloaded.
 
@@ -109,7 +115,8 @@ def _can_download(_type: str, file_formats: dict, file_format: Optional[str]) ->
         media types
     file_format: str
         Format of the current file to be downloaded.
-
+    msg_file_name: str
+        File origin name in message.
     Returns
     -------
     bool
@@ -119,6 +126,12 @@ def _can_download(_type: str, file_formats: dict, file_format: Optional[str]) ->
         allowed_formats: list = file_formats[_type]
         if not file_format in allowed_formats and allowed_formats[0] != "all":
             return False
+
+    if msg_file_name is not None:
+        for exclude in app.file_name_exclude:
+            if re.search(exclude, msg_file_name):
+                return False
+
     return True
 
 
@@ -269,8 +282,9 @@ async def download_media(
                 continue
             file_name, file_format = await _get_media_meta(message, _media, _type)
             media_size = getattr(_media, "file_size", 0)
+            msg_file_name = getattr(_media, "file_name", None)
 
-            if _can_download(_type, file_formats, file_format):
+            if _can_download(_type, file_formats, file_format, msg_file_name):
                 if _is_exist(file_name):
                     # TODO: check if the file download complete
                     # file_size = os.path.getsize(file_name)
@@ -520,8 +534,7 @@ def main():
         app.update_config()
 
 
-def exec_main():
-    """main"""
+if __name__ == "__main__":
     app.pre_run()
     print_meta(logger)
     main()
@@ -531,7 +544,3 @@ def exec_main():
         app.total_download_task,
         app.cloud_drive_config.total_upload_success_file_count,
     )
-
-
-if __name__ == "__main__":
-    exec_main()

@@ -41,14 +41,14 @@ class Application:
         self.reset()
 
         try:
-            with open(os.path.join(os.path.abspath("."), self.config_file)) as f:
+            with open(os.path.join(os.path.abspath("."), self.config_file), encoding='utf-8') as f:
                 self.config = yaml.safe_load(f)
                 self.load_config(self.config)
         except Exception as e:
             logger.error(f"load {self.config_file} error, {e}!")
 
         try:
-            with open(os.path.join(os.path.abspath("."), self.app_data_file)) as f:
+            with open(os.path.join(os.path.abspath("."), self.app_data_file), encoding='utf-8') as f:
                 self.app_data = yaml.safe_load(f)
                 self.load_app_data(self.app_data)
         except Exception as e:
@@ -84,6 +84,7 @@ class Application:
         self.max_concurrent_transmissions: int = 1
         self.web_host: str = "localhost"
         self.web_port: int = 5000
+        self.file_name_exclude: List[str] = []
 
     def load_config(self, _config: dict) -> bool:
         """load config from str.
@@ -168,6 +169,8 @@ class Application:
         self.max_concurrent_transmissions = _config.get(
             "max_concurrent_transmissions", self.max_concurrent_transmissions
         )
+
+        self.file_name_exclude = _config.get("file_name_exclude", self.file_name_exclude)
 
         return True
 
@@ -317,12 +320,12 @@ class Application:
         # self.app_data["already_download_ids"] = list(self.already_download_ids_set)
 
         if immediate:
-            with open(self.config_file, "w") as yaml_file:
-                yaml.dump(self.config, yaml_file, default_flow_style=False)
+            with open(self.config_file, "w", encoding='utf-8') as yaml_file:
+                yaml.dump(self.config, yaml_file, default_flow_style=False, allow_unicode=True)
 
         if immediate:
-            with open(self.app_data_file, "w") as yaml_file:
-                yaml.dump(self.app_data, yaml_file, default_flow_style=False)
+            with open(self.app_data_file, "w", encoding='utf-8') as yaml_file:
+                yaml.dump(self.app_data, yaml_file, default_flow_style=False, allow_unicode=True)
 
     def pre_run(self):
         """before run application do"""
